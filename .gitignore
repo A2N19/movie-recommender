@@ -1,0 +1,6 @@
+drafts
+___pycache__
+data
+"data/*.parquet" 
+"data/*.csv" 
+
