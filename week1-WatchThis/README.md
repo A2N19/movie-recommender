@@ -21,6 +21,9 @@ Currently remote access to database is not supported. For that reason even if yo
 
 However if you already set up remote access to database, then you can install these programs on host device, and just run conainerized app on user-side. In that case **no need to install** additional tools. just docker
 ## Requirements(local run):
+* Download dataset from [Kaggle](https://www.kaggle.com/datasets/chingchonghaha/database-movies). We didnt include dataset, because of the github restrictions.
+* then locate that dataset inside `week1-WatchThis/data/` folder
+
 1. Install dependencies: `pip install -r requirements.txt`
 
 2. Install [PgVector](https://github.com/pgvector/pgvector)
