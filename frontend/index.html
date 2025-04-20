@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Movie Recommendations</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f2f2f2; }
+    h1 { text-align: center; }
+    .controls { text-align: center; margin-bottom: 20px; }
+    .movie {
+      background: #fff; padding: 15px; margin: 10px auto; border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 500px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Recommended Movies</h1>
+
+  <div class="controls">
+    <input type="text" id="genre" placeholder="Genre (e.g. Drama)">
+    <input type="number" id="rating" placeholder="Min rating (e.g. 8.0)" step="0.1" min="0" max="10">
+    <button onclick="loadMovies()">Search</button>
+  </div>
+
+  <div id="movies"></div>
+
+  <script>
+    function loadMovies() {
+      const genre = document.getElementById("genre").value;
+      const rating = document.getElementById("rating").value;
+      let url = "http://localhost:5000/recommendations";
+
+      const params = [];
+      if (genre) params.push("genre=" + encodeURIComponent(genre));
+      if (rating) params.push("rating=" + rating);
+      if (params.length) url += "?" + params.join("&");
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById("movies");
+          container.innerHTML = "";
+          data.forEach(movie => {
+            const div = document.createElement("div");
+            div.className = "movie";
+            div.innerHTML = `
+              <h2>${movie.title}</h2>
+              <p><strong>Genre:</strong> ${movie.genre}</p>
+              <p><strong>Rating:</strong> ${movie.rating}</p>
+            `;
+            container.appendChild(div);
+          });
+        })
+        .catch(err => {
+          document.getElementById("movies").innerText = "Error loading movies.";
+          console.error(err);
+        });
+    }
+
+    loadMovies(); // начальная загрузка
+  </script>
+</body>
+</html>

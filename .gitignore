@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.db
+.env
+*.zip
+pgdata/
+minio_data/
