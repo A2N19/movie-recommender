@@ -51,7 +51,7 @@ Key design goals:
 
 ```text
 ┌────────────┐    ingest        ┌──────────────┐
-│   Files     │ ───────────────▶│   Ingestor    │
+│   Files    │ ───────────────▶│   Ingestor   │
 └────────────┘                  └─────┬────────┘
                                       │ chunks + embeddings
                            ┌──────────▼───────────┐
@@ -60,12 +60,17 @@ Key design goals:
                                       │ top‑k vectors
 ┌───────────────┐  query   ┌──────────┴───────────┐
 │ REST / CLI /  │─────────▶│ Retrieval Service    │
-│   LangChain    │         └──────────┬───────────┘
-                                      │ docs
-                              Retrieval‑QA Chain
+│   LangChain   │          └──────────┬───────────┘
+└───────────────┘                     │ docs
+                           ┌──────────┴───────────┐
+                           │  Retrieval‑QA Chain  │
+                           └──────────┬───────────┘
                                       ▼
-                               Down‑stream LLM
-```
+                            ┌──────────┴─────────┐
+                            │  Down‑stream LLM   │
+                            └────────────────────┘
+
+```                         
 
 ### Components
 
