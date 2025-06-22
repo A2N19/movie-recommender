@@ -18,9 +18,8 @@
 10. [Deployment](#deployment)
 11. [Contributing](#contributing)
 12. [Roadmap](#roadmap)
-13. [License](#license)
-14. [Authors & Acknowledgements](#authors--acknowledgements)
-15. [FAQ / Troubleshooting](#faq--troubleshooting)
+13. [Authors & Acknowledgements](#authors--acknowledgements)
+14. [FAQ / Troubleshooting](#faq--troubleshooting)
 
 ---
 
@@ -250,12 +249,6 @@ All code changes require matching unit tests.
 * [ ] Web UI (React + [Intersection Observer](https://developer.mozilla.org/docs/Web/API/Intersection_Observer) for infinite scroll)
 * [ ] Model hot‑swap via OCI image
 * [ ] Bench suite on A100 vs CPU
-
----
-
-## License
-
-This project is licensed under the **Apache-2.0** License – see [LICENSE](./LICENSE) for details.
 
 ---
 
