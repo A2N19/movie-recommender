@@ -1,6 +1,6 @@
 # relevant-document-retrieval
 
-> **One-liner:** A lightweight pipeline that turns *natural-language prompts* into **precise document hits** by combining semantic embeddings with classic lexical search.
+> **One‑liner:** A lightweight, self‑hosted RAG layer that turns *natural‑language prompts* into **precise document hits** using local, pretrained embedding models and classic lexical search.
 
 ---
 
@@ -8,57 +8,46 @@
 
 1. [Project Overview](#project-overview)
 2. [Key Features](#key-features)
-3. [Demo / Screenshots / Badges](#demo--screenshots--badges)
-4. [Architecture](#architecture)
-5. [Quick Start](#quick-start)
-6. [Datasets & Models](#datasets--models)
-7. [Directory & File Reference](#directory--file-reference)
-8. [Configuration](#configuration)
-9. [Testing & Linting](#testing--linting)
-10. [Benchmarking](#benchmarking)
-11. [Deployment](#deployment)
-12. [Contributing](#contributing)
-13. [Roadmap](#roadmap)
-14. [License](#license)
-15. [Authors & Acknowledgements](#authors--acknowledgements)
-16. [FAQ / Troubleshooting](#faq--troubleshooting)
+3. [Architecture](#architecture)
+4. [Quick Start](#quick-start)
+5. [Models](#models)
+6. [Directory & File Reference](#directory--file-reference)
+7. [Configuration](#configuration)
+8. [Testing & Linting](#testing--linting)
+9. [Benchmarking](#benchmarking)
+10. [Deployment](#deployment)
+11. [Contributing](#contributing)
+12. [Roadmap](#roadmap)
+13. [License](#license)
+14. [Authors & Acknowledgements](#authors--acknowledgements)
+15. [FAQ / Troubleshooting](#faq--troubleshooting)
 
 ---
 
 ## Project Overview
 
-Modern LLM applications excel at *reasoning* but still struggle with *factual recall* beyond their training cut-off. **relevant-document-retrieval** solves this pain by providing a retrieval-augmented generation (RAG) layer: it ingests arbitrary files (PDF, Markdown, HTML, etc.), creates dense vector embeddings plus BM25 indices, and lets you hit an HTTP or CLI endpoint to pull the *most relevant* chunks for a given question.
+Modern LLM agents excel at *reasoning* but still struggle with *factual recall* beyond their training cut‑off. **relevant‑document‑retrieval** fixes this by adding a retrieval‑augmented generation (RAG) layer: it ingests arbitrary files (PDF, Markdown, HTML, etc.), creates dense vector embeddings plus BM25 indices, and exposes API & CLI endpoints that return the *most relevant* chunks for a given question.
 
-The goal is to give hackathon teams an “instant memory” for their LLM agents. Instead of hard-coding context windows or manually searching SharePoint, developers can spin up the stack with **one Make command**, drop their docs into the *samples/* folder, and immediately start querying in natural language. The project favors minimal dependencies, Docker-first UX, and clear extensibility points.
+Key design goals:
+
+* **Local‑first.** No cloud keys, no external calls — everything runs on your machine or server.
+* **Hackathon‑friendly.** `make docker-up`, drop docs into *samples/*, query. That’s it.
+* **Composable.** Clear extension points for new chunkers, parsers, and embedding back‑ends.
 
 ---
 
 ## Key Features
 
 * 🔍 **Hybrid Search:** dense vectors (`pgvector`) + [BM25](https://en.wikipedia.org/wiki/Okapi_BM25) scoring for high recall & precision.
-* ✂️ **MMR Chunking:** on-the-fly [Maximal Marginal Relevance](https://huggingface.co/docs/transformers/main/en/main_classes/retriever#maximal-marginal-relevance) reduces redundancy while preserving coverage.
-* ⚡ **Streaming API:** Server-Sent Events (SSE) let front-ends show retrieval hits in real time.
-* 📦 **Batteries-included CLI:** `rel-doc ingest` & `rel-doc query` wrap the HTTP calls for quick shell testing.
-* 🐳 **One-command boot-up:** `make docker-up` spins Postgres 15 + pgvector 0.7 and the FastAPI service.
-* 🧩 **Pluggable Embedders:** swap OpenAI, Hugging Face or local [SentenceTransformers](https://www.sbert.net/) via a single env var.
-
----
-
-## Demo / Screenshots / Badges
-
-<!--
-![demo](docs/demo.gif)
-
-[![CI](https://github.com/org/repo/actions/workflows/ci.yml/badge.svg)](./.github/workflows/ci.yml)
--->
-
-*No public demo yet – add a GIF or Hugging Face Spaces link here when ready.*
+* ✂️ **MMR Chunking:** on‑the‑fly [Maximal Marginal Relevance](https://huggingface.co/docs/transformers/main/en/main_classes/retriever#maximal-marginal-relevance) reduces redundancy while preserving coverage.
+* ⚡ **Streaming API:** Server‑Sent Events (SSE) let front‑ends display retrieval hits in real time.
+* 🧩 **Retrieval‑QA Chain:** ready‑to‑use LangChain `RetrievalQA` wrapper to feed results directly into any LLM.
+* 🤝 **Pretrained, Offline Models:** ships with `sentence-transformers/all-MiniLM-L6-v2` (open licence, 384‑dim vectors) — no external API keys.
+* 🐳 **One‑command boot‑up:** `make docker-up` spins Postgres 15 + pgvector 0.7 and the FastAPI service.
 
 ---
 
 ## Architecture
-
-High-level data-flow:
 
 ```text
 ┌────────────┐    ingest        ┌──────────────┐
@@ -68,24 +57,25 @@ High-level data-flow:
                            ┌──────────▼───────────┐
                            │   Postgres + pgvector│
                            └──────────▲───────────┘
-                                      │ top-k vectors
+                                      │ top‑k vectors
 ┌───────────────┐  query   ┌──────────┴───────────┐
-│   REST / CLI  │─────────▶│  Retrieval Service   │
-└───────────────┘          └──────────┬───────────┘
+│ REST / CLI /  │─────────▶│ Retrieval Service    │
+│   LangChain    │         └──────────┬───────────┘
                                       │ docs
-                              (optional) RAG
+                              Retrieval‑QA Chain
                                       ▼
-                                 Down-stream LLM
+                               Down‑stream LLM
 ```
 
-Components
+### Components
 
-| Piece                | Role                                                           |
-| -------------------- | -------------------------------------------------------------- |
-| **FastAPI** gateway  | Exposes `/ingest` and `/query` endpoints (SSE-capable)         |
-| **Ingestor workers** | Extract text (PDFMiner, BeautifulSoup), split, embed           |
-| **Vector store**     | Postgres 15 + [pgvector](https://github.com/pgvector/pgvector) |
-| **LLM provider**     | OpenAI (`text-embedding-3-small`) by default, swappable        |
+| Piece                  | Role                                                            |
+| ---------------------- | --------------------------------------------------------------- |
+| **FastAPI** gateway    | Exposes `/ingest` and `/query` endpoints (SSE‑capable).         |
+| **Ingestor workers**   | Extract text (PDFMiner, BeautifulSoup), split, embed.           |
+| **Vector store**       | Postgres 15 + [pgvector](https://github.com/pgvector/pgvector). |
+| **Retrieval‑QA Chain** | LangChain wrapper that combines retriever + LLM.                |
+| **Embedding model**    | `sentence-transformers/all-MiniLM-L6-v2` (local).               |
 
 ---
 
@@ -93,9 +83,9 @@ Components
 
 ### Prerequisites
 
-* **Python ≥ 3.11** (only for CLI; the main service runs in Docker)
-* **Docker ≥ 24.0** and **docker-compose ≥ v2**
-* CPU is enough for small demos; GPU (CUDA 11+) recommended for local embedding models.
+* **Python ≥ 3.11** (for CLI; the main service runs in Docker)
+* **Docker ≥ 24.0** and **docker‑compose v2**
+* CPU is enough for small demos; GPU (CUDA 11+) speeds up embeddings.
 
 ### Local Setup
 
@@ -106,15 +96,15 @@ cd relevant-document-retrieval
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# Copy and fill env vars
+# Copy and edit env vars
 cp .env.example .env
 ```
 
 ### Running with Docker Compose
 
 ```bash
-# 1) Spin up Postgres (with pgvector) and the API
-make docker-up           # or: docker-compose up -d
+# 1) Start Postgres + pgvector + API
+docker compose up -d --build   # or: make docker-up
 
 # 2) Ingest sample docs
 rel-doc ingest ./samples
@@ -134,23 +124,21 @@ rel-doc query "Что такое когерентность волн?"
 
 ---
 
-## Datasets & Models
+## Models
 
-| Item                 | Details                                                                   |
-| -------------------- | ------------------------------------------------------------------------- |
-| **Sample corpus**    | `./samples` – public-domain texts (≤ 10 MB)                               |
-| **Embeddings model** | `text-embedding-3-small` (OpenAI) – 1536-d vectors, commercial license    |
-| **Tokenizer**        | Automatically inferred via [tiktoken](https://github.com/openai/tiktoken) |
-| **Checksums**        | Generated at ingest (`ingest.md5`)                                        |
+| Model                                    | Dim | License    | Notes                                       |
+| ---------------------------------------- | --- | ---------- | ------------------------------------------- |
+| `sentence-transformers/all-MiniLM-L6-v2` | 384 | Apache‑2.0 | Default embedder; <50 MB.                   |
+| *Bring your own*                         | —   | —          | Any model accepted by LangChain Embeddings. |
 
-*You can override the embedder with any model supported by [LangChain Embeddings](https://python.langchain.com/docs/integrations/text_embedding/).*
+> **No datasets included.** The system indexes whatever files you drop into *samples/* or pass to the ingest API.
 
 ---
 
 ## Directory & File Reference
 
 <details>
-<summary>First-level tree</summary>
+<summary>First‑level tree</summary>
 
 ```text
 ./
@@ -176,37 +164,27 @@ rel-doc query "Что такое когерентность волн?"
 | -------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------- |
 | [`main.py`](./main.py)                             | FastAPI app entrypoint                   | [`FastAPI`](https://fastapi.tiangolo.com/) · [`uvicorn`](https://www.uvicorn.org/) |
 | [`document_load_pipe.py`](./document_load_pipe.py) | CLI for batch ingestion                  | [`click`](https://click.palletsprojects.com/)                                      |
-| [`llm/`](./llm/)                                   | Provider adapters (OpenAI, HF, local)    | LangChain wrappers                                                                 |
+| [`llm/`](./llm/)                                   | Provider adapters (HF, local)            | LangChain wrappers                                                                 |
 | [`models/`](./models/)                             | Pydantic DTOs / ORM models               | [`SQLModel`](https://sqlmodel.tiangolo.com/)                                       |
-| [`parsers/`](./parsers/)                           | File-type handlers (PDF, HTML, Markdown) | PDFMiner, BeautifulSoup                                                            |
+| [`parsers/`](./parsers/)                           | File‑type handlers (PDF, HTML, Markdown) | PDFMiner, BeautifulSoup                                                            |
 | [`utils/`](./utils/)                               | Common helpers (chunking, hashing)       | pure Python                                                                        |
 | [`database/`](./database/)                         | SQL migrations, seeds                    | Alembic scripts                                                                    |
 | [`test/`](./test/)                                 | Pytest suites & fixtures                 | [`pytest`](https://docs.pytest.org/)                                               |
-| `init_stat.txt`                                    | Post-boot flag for Docker health-check   | shell                                                                              |
-| `metadata_structure.md`                            | Doc schema reference                     | Markdown                                                                           |
-| `tempCodeRunnerFile.py`                            | Scratch script (remove in prod)          | —                                                                                  |
-
-> **Special files**
->
-> * `.env.example` – template with all configurable variables.
-> * `docker-compose.yml` – builds the API and a Postgres 15 image pre-loaded with `pgvector` extension.
-> * `Makefile` – cross-platform task runner.
 
 ---
 
 ## Configuration
 
-| Variable            | Default                  | Description                            |
-| ------------------- | ------------------------ | -------------------------------------- |
-| `POSTGRES_HOST`     | `localhost`              | DB endpoint                            |
-| `POSTGRES_PORT`     | `5432`                   | —                                      |
-| `POSTGRES_USER`     | `postgres`               | —                                      |
-| `POSTGRES_PASSWORD` | `postgres`               | —                                      |
-| `OPENAI_API_KEY`    | —                        | Required for OpenAI embeddings         |
-| `EMBEDDING_MODEL`   | `text-embedding-3-small` | Any model string accepted by LangChain |
-| `CHUNK_SIZE`        | `512`                    | Tokens per chunk                       |
-| `MMR_K`             | `20`                     | Window size for MMR selection          |
-| `TOP_K`             | `5`                      | Retrieval depth                        |
+| Variable            | Default                                  | Description                                      |
+| ------------------- | ---------------------------------------- | ------------------------------------------------ |
+| `POSTGRES_HOST`     | `localhost`                              | DB endpoint                                      |
+| `POSTGRES_PORT`     | `5432`                                   | —                                                |
+| `POSTGRES_USER`     | `postgres`                               | —                                                |
+| `POSTGRES_PASSWORD` | `postgres`                               | —                                                |
+| `EMBEDDING_MODEL`   | `sentence-transformers/all-MiniLM-L6-v2` | Any embedding model string accepted by LangChain |
+| `CHUNK_SIZE`        | `512`                                    | Tokens per chunk                                 |
+| `MMR_K`             | `20`                                     | Window size for MMR selection                    |
+| `TOP_K`             | `5`                                      | Retrieval depth                                  |
 
 Create your own `.env` or pass vars via `docker compose --env-file`.
 
@@ -215,15 +193,12 @@ Create your own `.env` or pass vars via `docker compose --env-file`.
 ## Testing & Linting
 
 ```bash
-# unit & integration
-pytest -q
-
-# static checks
-ruff check .
-ruff format .
+pytest -q        # unit & integration
+ruff check .     # static analysis
+ruff format .    # auto‑format
 ```
 
-Pre-commit hooks are defined in `.pre-commit-config.yaml`; run `pre-commit install` after cloning.
+Pre‑commit hooks live in `.pre-commit-config.yaml`; run `pre-commit install` after cloning.
 
 ---
 
@@ -231,58 +206,70 @@ Pre-commit hooks are defined in `.pre-commit-config.yaml`; run `pre-commit insta
 
 | Metric                       | Script                    | Notes                 |
 | ---------------------------- | ------------------------- | --------------------- |
-| Ingest throughput (docs/sec) | `scripts/bench_ingest.py` | CPU i7-12700H         |
+| Ingest throughput (docs/sec) | `scripts/bench_ingest.py` | CPU i7‑12700H         |
 | Query latency (P99)          | `scripts/bench_query.py`  | 100 parallel requests |
 
-Output CSV is stored in `bench/` and can be plotted with `python scripts/plot.py`.
+CSV outputs live in `bench/` and can be plotted with `python scripts/plot.py`.
 
 ---
 
 ## Deployment
 
-| Target             | Hint                                                        |
-| ------------------ | ----------------------------------------------------------- |
-| **Docker Compose** | `docker compose -f deploy/prod.yml up -d --scale api=3`     |
-| **Kubernetes**     | See `charts/reldoc/values.yaml` for resources & autoscaling |
-| **HF Spaces**      | Comment out Postgres, switch to `sqlite+aiosqlite://`       |
-| **GPU box**        | Mount \`--gpus                                              |
+| Target             | Hint                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| **Docker Compose** | `docker compose -f deploy/prod.yml up -d --scale api=3`                              |
+| **Kubernetes**     | See `charts/reldoc/values.yaml` for resources & autoscaling                          |
+| **HF Spaces**      | Comment out Postgres, switch to `sqlite+aiosqlite://`                                |
+| **GPU box**        | Mount `--gpus all` and set `EMBEDDING_MODEL=sentence-transformers/all-mpnet-base-v2` |
+
+Tune `shared_buffers` & `work_mem` in `postgresql.conf` for large corpora.
+
+---
 
 ## Contributing
-We follow Conventional Commits + GitHub Flow.
 
-1. feat/my-brief-topic branch off main
+We follow **[Conventional Commits](https://www.conventionalcommits.org/)** + GitHub Flow.
 
-2. make fmt && make test must pass
-
-3. Open PR, request review from @team-Budapest/owners
+1. `feat/my-brief-topic` branch off **main**
+2. `make fmt && make test` must pass
+3. Open PR, request review from `@team-Budapest/owners`
 
 All code changes require matching unit tests.
 
-##Roadmap
- PDF table extraction
+---
 
- Vector-aware summarization endpoint
+## Roadmap
 
- Web UI (React + Intersection Observer for infinite scroll)
+* [ ] PDF table extraction
+* [ ] Vector‑aware summarization endpoint
+* [ ] Web UI (React + [Intersection Observer](https://developer.mozilla.org/docs/Web/API/Intersection_Observer) for infinite scroll)
+* [ ] Model hot‑swap via OCI image
+* [ ] Bench suite on A100 vs CPU
 
- BYO-embedding model via OCI image
+---
 
- Bench suite on A100 vs CPU
+## License
+
+This project is licensed under the **Apache-2.0** License – see [LICENSE](./LICENSE) for details.
+
+---
 
 ## Authors & Acknowledgements
-Made with ☕ by Team “Budapest”.
-Big thanks to the OSS community behind FastAPI, pgvector, and LangChain.
+
+Developed with ☕ by **Команда «Будапешт»**.
+Big thanks to the OSS community behind FastAPI, pgvector, SentenceTransformers, and LangChain.
+
+---
 
 ## FAQ / Troubleshooting
+
 | Question                                                     | Fix                                                                                 |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | **`psycopg2.OperationalError: could not connect to server`** | Ensure `docker compose ps` shows the `db` container healthy; check `POSTGRES_HOST`. |
 | **`pgvector extension "vector" does not exist`**             | Run `CREATE EXTENSION IF NOT EXISTS vector;` or rebuild with `make docker-up`.      |
-| **CUDA-enabled embedder OOM**                                | Lower `BATCH_SIZE` or switch to CPU model.                                          |
-| **Tokenizer mismatch error**                                 | Delete `vector_cache/`, re-ingest with consistent model/version.                    |
-| **CORS blocked in browser**                                  | Set `ALLOWED_ORIGINS=*` (dev) or whitelist domains.                                 |
-| **UnicodeDecodeError on ingest**                             | Add `--encoding utf-8` flag or update `parsers/file_loader.py`.                     |
-| **`SSL: WRONG_VERSION_NUMBER` on OpenAI**                    | `export OPENAI_API_BASE=https://api.openai.com/v1` or upgrade `openssl`.            |
+| CUDA‑enabled embedder OOM                                    | Lower `BATCH_SIZE` or switch to CPU model.                                          |
+| Tokenizer mismatch error                                     | Delete `vector_cache/`, re-ingest with consistent model/version.                    |
+| CORS blocked in browser                                      | Set `ALLOWED_ORIGINS=*` (dev) or whitelist domains.                                 |
+| UnicodeDecodeError on ingest                                 | Add `--encoding utf-8` flag or update `parsers/file_loader.py`.                     |
 | CLI hangs on Windows                                         | Use `winpty rel-doc ...` (Git Bash) or WSL.                                         |
-| Inaccurate search results                                    | Increase `CHUNK_OVERLAP`, tune `TOP_K`, or enable hybrid mode.                      |
-| Slow ingest                                                  | Raise `--num-workers`, mount SSD; disable per-chunk SHA-256 if not required.        |
+| Inaccurate search results                                    | Increase \`CH                                                                       |
